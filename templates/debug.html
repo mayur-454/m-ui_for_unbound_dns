@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:20px;text-transform:uppercase;">
+  DNS Debug Tools
+</h2>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- LEFT COLUMN -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- DNS Lookup -->
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h3>DNS Lookup</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Hostname / IP Address</label>
+          <input class="form-control" id="dbg-target" placeholder="e.g. google.com  or  8.8.8.8"
+                 onkeydown="if(event.key==='Enter') runTool(document.getElementById('dbg-tool').value)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Record Type / Tool</label>
+          <select class="form-control" id="dbg-record">
+            <option value="A">A</option>
+            <option value="AAAA">AAAA</option>
+            <option value="MX">MX</option>
+            <option value="TXT">TXT</option>
+            <option value="NS">NS</option>
+            <option value="CNAME">CNAME</option>
+            <option value="SOA">SOA</option>
+            <option value="SRV">SRV</option>
+            <option value="PTR">PTR</option>
+            <option value="ANY">ANY</option>
+          </select>
+        </div>
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="runDig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            dig
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool('nslookup')">nslookup</button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool('dnssec')">dig +dnssec</button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool('reverse')">Reverse PTR</button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool('dig_short')">dig +short</button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool('dig_trace')">dig +trace</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ping / Traceroute -->
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <h3>Connectivity</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Target (hostname or IP)</label>
+          <input class="form-control" id="dbg-target2" placeholder="e.g. 1.1.1.1 or google.com"
+                 onkeydown="if(event.key==='Enter') runTool2('ping')">
+        </div>
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="runTool2('ping')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Ping (4 packets)
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool2('trace')">Traceroute</button>
+          <button class="btn btn-ghost btn-sm" onclick="runTool2('whois')">whois</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unbound Diagnostics -->
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <h3>Unbound Diagnostics</h3>
+      </div>
+      <div class="card-body">
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('check_control')">control status</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('check_conf')">checkconf</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('stats')">stats</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('local_zones')">list local zones</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('local_data')">list local data</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('dump_cache')">dump cache</button>
+          <button class="btn btn-ghost btn-sm" onclick="runBuiltin('lookup')">lookup (needs target)</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px;">
+          For <code>lookup</code>, enter hostname in the DNS Lookup target box above.
+        </p>
+      </div>
+    </div>
+
+    <!-- Custom Command -->
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <h3>Custom unbound-control Command</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Arguments (after "unbound-control")</label>
+          <input class="form-control" id="dbg-custom" placeholder="e.g.  flush_zone example.com"
+                 onkeydown="if(event.key==='Enter') runCustom()">
+        </div>
+        <div class="alert alert-warning" style="margin-bottom:12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Only safe read-only and flush commands are accepted.
+        </div>
+        <button class="btn btn-orange btn-sm" onclick="runCustom()">Run Command</button>
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- RIGHT COLUMN — Output -->
+  <div>
+    <div class="card" style="position:sticky;top:16px;">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <h3>Output</h3>
+        <span id="dbg-cmd-label" style="flex:1;font-size:11px;color:var(--text-muted);margin-left:4px;font-family:monospace;"></span>
+        <button class="btn btn-ghost btn-sm" onclick="clearOutput()">Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyOutput()">Copy</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="log-viewer" id="dbg-out"
+             style="min-height:520px;max-height:70vh;overflow-y:auto;border-radius:0 0 8px 8px;padding:14px;white-space:pre-wrap;word-break:break-all;">
+Run a tool to see output here…
+        </div>
+      </div>
+    </div>
+  </div><!-- /right -->
+
+</div>
+
+<script>
+function getTarget1() { return (document.getElementById('dbg-target').value || '').trim(); }
+function getTarget2() { return (document.getElementById('dbg-target2').value || '').trim(); }
+
+function setOutput(text, cmd) {
+  document.getElementById('dbg-out').textContent = text;
+  if (cmd) document.getElementById('dbg-cmd-label').textContent = '$ ' + cmd;
+}
+
+function clearOutput() {
+  document.getElementById('dbg-out').textContent = '';
+  document.getElementById('dbg-cmd-label').textContent = '';
+}
+
+function copyOutput() {
+  const text = document.getElementById('dbg-out').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'success'));
+}
+
+async function _run(payload) {
+  setOutput('Running…', null);
+  try {
+    const d = await fetch('/api/debug/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+    setOutput(d.output || d.error || '(no output)', d.cmd || null);
+    if (!d.success && d.rc !== 0) toast('Command exited with error (rc=' + d.rc + ')', 'warning');
+  } catch(e) {
+    setOutput('Request failed: ' + e, null);
+    toast('Request failed', 'error');
+  }
+}
+
+async function runDig() {
+  const target = getTarget1();
+  const record = document.getElementById('dbg-record').value;
+  if (!target) { toast('Enter a hostname or IP first', 'warning'); return; }
+  await _run({ tool: 'dig', target, record });
+}
+
+async function runTool(tool) {
+  const target = getTarget1();
+  if (!target && !['check_control','check_conf','stats','local_zones','local_data','dump_cache'].includes(tool)) {
+    toast('Enter a hostname or IP first', 'warning'); return;
+  }
+  await _run({ tool, target });
+}
+
+async function runTool2(tool) {
+  const target = getTarget2();
+  if (!target) { toast('Enter a target first', 'warning'); return; }
+  await _run({ tool, target });
+}
+
+async function runBuiltin(tool) {
+  const target = getTarget1();
+  await _run({ tool, target });
+}
+
+async function runCustom() {
+  const args = (document.getElementById('dbg-custom').value || '').trim();
+  if (!args) { toast('Enter command arguments', 'warning'); return; }
+  await _run({ tool: 'custom', target: args });
+}
+</script>
+
+{% endblock %}
