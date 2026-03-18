@@ -1264,6 +1264,8 @@
       if (data.success) {
         toast(`Unbound ${action} successful`, 'success');
         setTimeout(updateStatus, 1500);
+        // Reload page after 2.5s so all sections (stats, status) reflect new state
+        setTimeout(() => location.reload(), 2500);
       } else {
         toast(`Failed: ${data.error || 'unknown error'}`, 'error', 6000);
       }
