@@ -1,0 +1,4 @@
+venv/
+backups/
+.stfolder/
+__pycache__/

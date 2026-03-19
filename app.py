@@ -4,7 +4,9 @@ Unbound DNS Web GUI - pfSense/OpenWrt inspired interface
 Run with: python3 app.py
 """
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from auth import init_creds, check_creds, change_password, login_required
+
 import subprocess
 import os
 import re
@@ -14,6 +16,9 @@ import platform
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'changeme-' + os.urandom(16).hex())
+init_creds()
+
 app.secret_key = 'unbound-gui-secret-2024'
 
 DEFAULT_CONFIG_DIR = '/etc/unbound/unbound.conf.d/'
@@ -414,25 +419,27 @@ def get_log_lines(n=100):
 # ─────────────────────────────────────────────
 #  ROUTES
 # ─────────────────────────────────────────────
-
+# --- Home Page ---
 @app.route('/')
+@login_required
 def home():
     sys_info     = get_system_info()
     unbound_info = get_unbound_info()
     return render_template('home.html', sys=sys_info, unb=unbound_info, active_tab='home')
 
-
+# --- Config Page ---
 @app.route('/config')
+@login_required
 def config():
     cfg_file = get_config_file()
     parsed   = parse_unbound_conf(cfg_file)
-    # Also scan conf.d directory for includes
     conf_d_files = sorted(glob.glob(DEFAULT_CONFIG_DIR + '*.conf'))
     return render_template('config.html', cfg=parsed, cfg_file=cfg_file,
                            conf_d_files=conf_d_files, active_tab='config')
 
-
+# --- Settings Page ---
 @app.route('/settings')
+@login_required
 def settings():
     cfg_file     = get_config_file()
     conf_d_files = sorted(glob.glob(DEFAULT_CONFIG_DIR + '*.conf'))
@@ -440,7 +447,6 @@ def settings():
     return render_template('settings.html', cfg_file=cfg_file,
                            conf_d_files=conf_d_files, all_conf=all_conf,
                            active_tab='settings')
-
 
 # ─────────────────────────────────────────────
 #  API ENDPOINTS
@@ -675,44 +681,163 @@ def api_config_delete_file():
     return jsonify({'success': rc == 0, 'error': err})
 
 
-# debug tab section
+    
+
+
+# backup section in setings
+
+import shutil, glob
+BACKUP_DIR = os.path.join(os.path.dirname(__file__), 'backups')
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+@app.route('/api/backup/create', methods=['POST'])
+@login_required
+def api_backup_create():
+    data = request.get_json()
+    label = data.get('label', '').replace(' ','_') or 'manual'
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    dest = os.path.join(BACKUP_DIR, f'unbound_{label}_{ts}.conf')
+    src = get_config_file()
+    try:
+        shutil.copy2(src, dest)
+        return jsonify({'success': True, 'filename': os.path.basename(dest)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/backup/list')
+@login_required
+def api_backup_list():
+    files = sorted(glob.glob(os.path.join(BACKUP_DIR, '*.conf')), reverse=True)
+    return jsonify({'backups': [os.path.basename(f) for f in files]})
+
+@app.route('/api/backup/restore', methods=['POST'])
+@login_required
+def api_backup_restore():
+    data = request.get_json()
+    filename = os.path.basename(data.get('filename',''))
+    src = os.path.join(BACKUP_DIR, filename)
+    dest = get_config_file()
+    if not os.path.exists(src):
+        return jsonify({'success': False, 'error': 'Backup file not found'})
+    try:
+        # Save current as emergency backup before restoring
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        shutil.copy2(dest, os.path.join(BACKUP_DIR, f'pre_restore_{ts}.conf'))
+        shutil.copy2(src, dest)
+        run_cmd('systemctl reload-or-restart unbound')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/backup/delete', methods=['POST'])
+@login_required
+def api_backup_delete():
+    data = request.get_json()
+    filename = os.path.basename(data.get('filename',''))
+    path = os.path.join(BACKUP_DIR, filename)
+    try:
+        os.remove(path)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/backup/download/<filename>')
+@login_required
+def api_backup_download(filename):
+    from flask import send_from_directory
+    return send_from_directory(BACKUP_DIR, os.path.basename(filename), as_attachment=True)
+
+
+
+@app.route('/login', methods=['GET','POST'])
+def login():
+    error = None
+    next_url = request.args.get('next', '/')
+    last_username = ''
+    if request.method == 'POST':
+        u = request.form.get('username','')
+        p = request.form.get('password','')
+        last_username = u
+        if check_creds(u, p):
+            session['logged_in'] = True
+            session['username'] = u
+            return redirect(next_url)
+        error = 'Invalid username or password.'
+    return render_template('login.html', error=error, next=next_url, last_username=last_username)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
+
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def api_change_password():
+    data = request.get_json()
+    new_pw = data.get('password','').strip()
+    if len(new_pw) < 6:
+        return jsonify({'success': False, 'error': 'Password must be at least 6 characters'})
+    change_password(session.get('username','admin'), new_pw)
+    return jsonify({'success': True})
+
 @app.route('/debug')
-#@login_required
+@login_required
 def debug_page():
     return render_template('debug.html', active_tab='debug')
 
 @app.route('/api/debug/run', methods=['POST'])
-#@login_required
+@login_required
 def api_debug_run():
+    import shlex
     data = request.get_json()
-    tool = data.get('tool')
+    tool   = data.get('tool','')
     target = data.get('target','').strip()
-    if not target:
-        return jsonify({'success': False, 'error': 'No target specified'})
-    # Whitelist of safe commands
-    cmds = {
-        'ping':    f"ping -c 4 -W 2 {target}",
-        'dig':     f"dig {target}",
-        'dig_any': f"dig {target} ANY",
-        'nslookup':f"nslookup {target}",
-        'trace':   f"traceroute -m 15 {target}",
-        'dnssec':  f"dig +dnssec {target}",
-        'reverse': f"dig -x {target}",
-        'whois':   f"whois {target}",
-        'check_control': "unbound-control status",
-        'check_conf':    "unbound-checkconf",
-        'dump_cache':    "unbound-control dump_cache",
-        'local_zones':   "unbound-control list_local_zones",
-        'local_data':    "unbound-control list_local_data",
+    record = data.get('record','A')
+
+    # Tools that need a target
+    needs_target = {'ping','trace','whois','nslookup','reverse','dig','dig_short','dig_trace','dnssec','lookup'}
+    if tool in needs_target and not target:
+        return jsonify({'success': False, 'error': 'No target specified', 'output': 'Error: enter a hostname or IP.'})
+
+    cmd_map = {
+        'ping':          (f"ping -c 4 -W 2 {target}",                   f"ping -c 4 {target}"),
+        'trace':         (f"traceroute -m 15 {target}",                  f"traceroute {target}"),
+        'nslookup':      (f"nslookup {target}",                          f"nslookup {target}"),
+        'whois':         (f"whois {target}",                             f"whois {target}"),
+        'dig':           (f"dig {target} {record}",                      f"dig {target} {record}"),
+        'dig_short':     (f"dig +short {target}",                        f"dig +short {target}"),
+        'dig_trace':     (f"dig +trace {target}",                        f"dig +trace {target}"),
+        'dnssec':        (f"dig +dnssec {target}",                       f"dig +dnssec {target}"),
+        'reverse':       (f"dig -x {target}",                            f"dig -x {target}"),
+        'check_control': ("unbound-control status",                      "unbound-control status"),
+        'check_conf':    ("unbound-checkconf",                           "unbound-checkconf"),
+        'stats':         ("unbound-control stats_noreset",               "unbound-control stats_noreset"),
+        'local_zones':   ("unbound-control list_local_zones",            "unbound-control list_local_zones"),
+        'local_data':    ("unbound-control list_local_data",             "unbound-control list_local_data"),
+        'dump_cache':    ("unbound-control dump_cache",                  "unbound-control dump_cache"),
+        'lookup':        (f"unbound-control lookup {target}",            f"unbound-control lookup {target}"),
     }
-    cmd = cmds.get(tool)
-    if not cmd:
-        return jsonify({'success': False, 'error': 'Unknown tool'})
-    out, err, rc = run_cmd(cmd)
-    return jsonify({'success': True, 'output': out or err, 'rc': rc})
+
+    if tool == 'custom':
+        # Whitelist allowed unbound-control subcommands for custom input
+        allowed_prefix = ('stats','status','lookup','list_','dump_','flush_zone','flush ','verbosity','reload')
+        args = target  # target field reused for custom args
+        if not any(args.startswith(p) for p in allowed_prefix):
+            return jsonify({'success': False, 'error': 'Command not allowed', 'output': f'Blocked: unbound-control {args}\nOnly stats/status/lookup/list_*/dump_*/flush_* allowed.'})
+        cmd_run  = f"unbound-control {args}"
+        cmd_show = cmd_run
+    elif tool in cmd_map:
+        cmd_run, cmd_show = cmd_map[tool]
+    else:
+        return jsonify({'success': False, 'error': 'Unknown tool', 'output': 'Unknown tool: ' + tool})
+
+    out, err, rc = run_cmd(cmd_run)
+    output = out if out else err
+    return jsonify({'success': rc == 0, 'output': output or '(no output)', 'rc': rc, 'cmd': cmd_show})
 
 
     
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=False)
