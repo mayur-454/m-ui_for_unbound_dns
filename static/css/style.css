@@ -889,6 +889,7 @@ select.form-control option {
     gap: 2px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
+    overflow-x: scroll;
 }
 
 .tab-btn {
