@@ -1,6 +1,5 @@
-
-import os
 import json
+import os
 import hashlib
 import secrets
 from functools import wraps
@@ -69,6 +68,10 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get('logged_in'):
-            return redirect(url_for('login', next=request.path))
+            # Use a plain path redirect — Flask url_for can produce http:// even
+            # when the server is running HTTPS, causing the Secure cookie to be
+            # lost.  A path-only redirect lets the browser keep the current scheme.
+            next_path = request.path
+            return redirect(f'/login?next={next_path}')
         return f(*args, **kwargs)
     return decorated

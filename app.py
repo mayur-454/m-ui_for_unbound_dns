@@ -5,8 +5,6 @@ Run with: python3 app.py
 """
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from auth import init_creds, check_creds, change_password, login_required
-
 import subprocess
 import os
 import re
@@ -15,11 +13,29 @@ import json
 import platform
 from datetime import datetime
 
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'changeme-' + os.urandom(16).hex())
-init_creds()
+from auth import init_creds, check_creds, change_password, login_required
 
-app.secret_key = 'unbound-gui-secret-2024'
+app = Flask(__name__)
+
+# Secret key — stable across restarts so sessions survive a reload.
+# Override with SECRET_KEY env var in production.
+_sk_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.secret_key')
+if not os.path.exists(_sk_file):
+    import secrets as _sec
+    with open(_sk_file, 'w') as _f:
+        _f.write(_sec.token_hex(32))
+    os.chmod(_sk_file, 0o600)
+with open(_sk_file) as _f:
+    app.secret_key = os.environ.get('SECRET_KEY', _f.read().strip())
+
+# Session cookie settings
+# SESSION_COOKIE_SECURE is set in __main__ depending on whether HTTPS loads
+app.config['SESSION_COOKIE_SECURE']           = False  # overridden to True when HTTPS starts
+app.config['SESSION_COOKIE_HTTPONLY']         = True
+app.config['SESSION_COOKIE_SAMESITE']         = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME']      = 86400  # 24 h
+
+init_creds()
 
 DEFAULT_CONFIG_DIR = '/etc/unbound/unbound.conf.d/'
 DEFAULT_CONFIG_FILE = '/etc/unbound/unbound.conf'
@@ -419,7 +435,7 @@ def get_log_lines(n=100):
 # ─────────────────────────────────────────────
 #  ROUTES
 # ─────────────────────────────────────────────
-# --- Home Page ---
+
 @app.route('/')
 @login_required
 def home():
@@ -427,17 +443,18 @@ def home():
     unbound_info = get_unbound_info()
     return render_template('home.html', sys=sys_info, unb=unbound_info, active_tab='home')
 
-# --- Config Page ---
+
 @app.route('/config')
 @login_required
 def config():
     cfg_file = get_config_file()
     parsed   = parse_unbound_conf(cfg_file)
+    # Also scan conf.d directory for includes
     conf_d_files = sorted(glob.glob(DEFAULT_CONFIG_DIR + '*.conf'))
     return render_template('config.html', cfg=parsed, cfg_file=cfg_file,
                            conf_d_files=conf_d_files, active_tab='config')
 
-# --- Settings Page ---
+
 @app.route('/settings')
 @login_required
 def settings():
@@ -448,21 +465,25 @@ def settings():
                            conf_d_files=conf_d_files, all_conf=all_conf,
                            active_tab='settings')
 
+
 # ─────────────────────────────────────────────
 #  API ENDPOINTS
 # ─────────────────────────────────────────────
 
 @app.route('/api/status')
+@login_required
 def api_status():
     return jsonify(get_unbound_info())
 
 
 @app.route('/api/sysinfo')
+@login_required
 def api_sysinfo():
     return jsonify(get_system_info())
 
 
 @app.route('/api/stats')
+@login_required
 def api_stats():
     info = get_unbound_info()
     return jsonify({
@@ -480,6 +501,7 @@ def api_stats():
 
 
 @app.route('/api/service/<action>', methods=['POST'])
+@login_required
 def api_service(action):
     allowed = {'start', 'stop', 'restart', 'reload', 'enable', 'disable'}
     if action not in allowed:
@@ -489,12 +511,14 @@ def api_service(action):
 
 
 @app.route('/api/service/status')
+@login_required
 def api_service_status():
     out, _, _ = run_cmd('systemctl status unbound --no-pager')
     return jsonify({'output': out})
 
 
 @app.route('/api/config/save', methods=['POST'])
+@login_required
 def api_config_save():
     data      = request.get_json()
     cfg_file  = get_config_file()
@@ -538,6 +562,7 @@ def api_config_save():
 
 
 @app.route('/api/config/apply', methods=['POST'])
+@login_required
 def api_config_apply():
     """Save + reload unbound"""
     save_result = api_config_save()
@@ -554,6 +579,7 @@ def api_config_apply():
 
 
 @app.route('/api/config/load_file', methods=['POST'])
+@login_required
 def api_config_load_file():
     data     = request.get_json()
     filepath = data.get('file', '')
@@ -565,12 +591,14 @@ def api_config_load_file():
 
 
 @app.route('/api/config/validate', methods=['POST'])
+@login_required
 def api_config_validate():
     out, err, rc = run_cmd('unbound-checkconf')
     return jsonify({'valid': rc == 0, 'output': out or err})
 
 
 @app.route('/api/config/raw', methods=['GET'])
+@login_required
 def api_config_raw():
     cfg_file = get_config_file()
     try:
@@ -582,6 +610,7 @@ def api_config_raw():
 
 
 @app.route('/api/config/raw/save', methods=['POST'])
+@login_required
 def api_config_raw_save():
     data    = request.get_json()
     content = data.get('content', '')
@@ -601,6 +630,7 @@ def api_config_raw_save():
 
 
 @app.route('/api/logs')
+@login_required
 def api_logs():
     n = request.args.get('n', 200)
     out = get_log_lines(n)
@@ -608,6 +638,7 @@ def api_logs():
 
 
 @app.route('/api/system/<action>', methods=['POST'])
+@login_required
 def api_system(action):
     if action == 'reboot':
         run_cmd('shutdown -r +0')
@@ -628,6 +659,7 @@ def api_system(action):
 
 
 @app.route('/api/config/files')
+@login_required
 def api_config_files():
     files = sorted(glob.glob(DEFAULT_CONFIG_DIR + '*.conf'))
     files += sorted(glob.glob(DEFAULT_CONFIG_DIR + '**/*.conf', recursive=True))
@@ -639,6 +671,7 @@ def api_config_files():
 
 
 @app.route('/api/config/set_file', methods=['POST'])
+@login_required
 def api_config_set_file():
     data     = request.get_json()
     filepath = data.get('file', '')
@@ -649,6 +682,7 @@ def api_config_set_file():
 
 
 @app.route('/api/config/create_file', methods=['POST'])
+@login_required
 def api_config_create_file():
     data     = request.get_json()
     filename = data.get('filename', '').strip()
@@ -670,6 +704,7 @@ def api_config_create_file():
 
 
 @app.route('/api/config/delete_file', methods=['POST'])
+@login_required
 def api_config_delete_file():
     data     = request.get_json()
     filepath = data.get('file', '')
@@ -681,163 +716,300 @@ def api_config_delete_file():
     return jsonify({'success': rc == 0, 'error': err})
 
 
-    
-
-
-# backup section in setings
-
-import shutil, glob
-BACKUP_DIR = os.path.join(os.path.dirname(__file__), 'backups')
-os.makedirs(BACKUP_DIR, exist_ok=True)
-
-@app.route('/api/backup/create', methods=['POST'])
+@app.route('/api/ssl/info')
 @login_required
-def api_backup_create():
-    data = request.get_json()
-    label = data.get('label', '').replace(' ','_') or 'manual'
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    dest = os.path.join(BACKUP_DIR, f'unbound_{label}_{ts}.conf')
-    src = get_config_file()
+def api_ssl_info():
     try:
-        shutil.copy2(src, dest)
-        return jsonify({'success': True, 'filename': os.path.basename(dest)})
+        from ssl_utils import get_cert_info
+        return jsonify(get_cert_info())
+    except Exception as e:
+        return jsonify({'exists': False, 'error': str(e)})
+
+
+@app.route('/api/ssl/regenerate', methods=['POST'])
+@login_required
+def api_ssl_regenerate():
+    try:
+        import os as _os
+        from ssl_utils import CERT_FILE, KEY_FILE, ensure_ssl_cert
+        for f in (CERT_FILE, KEY_FILE):
+            if _os.path.exists(f):
+                _os.remove(f)
+        ensure_ssl_cert()
+        return jsonify({'success': True, 'message': 'Certificate regenerated. Restart the server to apply.'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/backup/list')
-@login_required
-def api_backup_list():
-    files = sorted(glob.glob(os.path.join(BACKUP_DIR, '*.conf')), reverse=True)
-    return jsonify({'backups': [os.path.basename(f) for f in files]})
-
-@app.route('/api/backup/restore', methods=['POST'])
-@login_required
-def api_backup_restore():
-    data = request.get_json()
-    filename = os.path.basename(data.get('filename',''))
-    src = os.path.join(BACKUP_DIR, filename)
-    dest = get_config_file()
-    if not os.path.exists(src):
-        return jsonify({'success': False, 'error': 'Backup file not found'})
-    try:
-        # Save current as emergency backup before restoring
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        shutil.copy2(dest, os.path.join(BACKUP_DIR, f'pre_restore_{ts}.conf'))
-        shutil.copy2(src, dest)
-        run_cmd('systemctl reload-or-restart unbound')
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/backup/delete', methods=['POST'])
-@login_required
-def api_backup_delete():
-    data = request.get_json()
-    filename = os.path.basename(data.get('filename',''))
-    path = os.path.join(BACKUP_DIR, filename)
-    try:
-        os.remove(path)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/backup/download/<filename>')
-@login_required
-def api_backup_download(filename):
-    from flask import send_from_directory
-    return send_from_directory(BACKUP_DIR, os.path.basename(filename), as_attachment=True)
 
 
+# ─────────────────────────────────────────────
+#  AUTH ROUTES
+# ─────────────────────────────────────────────
 
-@app.route('/login', methods=['GET','POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Already logged in — go home
+    if session.get('logged_in'):
+        return redirect('/')
     error = None
     next_url = request.args.get('next', '/')
     last_username = ''
     if request.method == 'POST':
-        u = request.form.get('username','')
-        p = request.form.get('password','')
+        u = request.form.get('username', '').strip()
+        p = request.form.get('password', '')
         last_username = u
         if check_creds(u, p):
+            session.permanent = True
             session['logged_in'] = True
-            session['username'] = u
-            return redirect(next_url)
+            session['username']  = u
+            return redirect(next_url if next_url.startswith('/') else '/')
         error = 'Invalid username or password.'
-    return render_template('login.html', error=error, next=next_url, last_username=last_username)
+    return render_template('login.html', error=error, next=next_url,
+                           last_username=last_username)
+
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
 
+
 @app.route('/api/change_password', methods=['POST'])
 @login_required
 def api_change_password():
-    data = request.get_json()
-    new_pw = data.get('password','').strip()
+    data   = request.get_json() or {}
+    new_pw = data.get('password', '').strip()
     if len(new_pw) < 6:
         return jsonify({'success': False, 'error': 'Password must be at least 6 characters'})
-    change_password(session.get('username','admin'), new_pw)
+    change_password(session.get('username', 'admin'), new_pw)
     return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
+#  DEBUG PAGE
+# ─────────────────────────────────────────────
 
 @app.route('/debug')
 @login_required
 def debug_page():
     return render_template('debug.html', active_tab='debug')
 
+
 @app.route('/api/debug/run', methods=['POST'])
 @login_required
 def api_debug_run():
-    import shlex
-    data = request.get_json()
-    tool   = data.get('tool','')
-    target = data.get('target','').strip()
-    record = data.get('record','A')
+    data   = request.get_json() or {}
+    tool   = data.get('tool', '')
+    target = data.get('target', '').strip()
+    record = data.get('record', 'A')
 
-    # Tools that need a target
-    needs_target = {'ping','trace','whois','nslookup','reverse','dig','dig_short','dig_trace','dnssec','lookup'}
+    needs_target = {'ping', 'trace', 'whois', 'nslookup', 'reverse',
+                    'dig', 'dig_short', 'dig_trace', 'dnssec', 'lookup'}
     if tool in needs_target and not target:
-        return jsonify({'success': False, 'error': 'No target specified', 'output': 'Error: enter a hostname or IP.'})
+        return jsonify({'success': False, 'error': 'No target specified',
+                        'output': 'Error: enter a hostname or IP first.'})
 
     cmd_map = {
-        'ping':          (f"ping -c 4 -W 2 {target}",                   f"ping -c 4 {target}"),
-        'trace':         (f"traceroute -m 15 {target}",                  f"traceroute {target}"),
-        'nslookup':      (f"nslookup {target}",                          f"nslookup {target}"),
-        'whois':         (f"whois {target}",                             f"whois {target}"),
-        'dig':           (f"dig {target} {record}",                      f"dig {target} {record}"),
-        'dig_short':     (f"dig +short {target}",                        f"dig +short {target}"),
-        'dig_trace':     (f"dig +trace {target}",                        f"dig +trace {target}"),
-        'dnssec':        (f"dig +dnssec {target}",                       f"dig +dnssec {target}"),
-        'reverse':       (f"dig -x {target}",                            f"dig -x {target}"),
-        'check_control': ("unbound-control status",                      "unbound-control status"),
-        'check_conf':    ("unbound-checkconf",                           "unbound-checkconf"),
-        'stats':         ("unbound-control stats_noreset",               "unbound-control stats_noreset"),
-        'local_zones':   ("unbound-control list_local_zones",            "unbound-control list_local_zones"),
-        'local_data':    ("unbound-control list_local_data",             "unbound-control list_local_data"),
-        'dump_cache':    ("unbound-control dump_cache",                  "unbound-control dump_cache"),
-        'lookup':        (f"unbound-control lookup {target}",            f"unbound-control lookup {target}"),
+        'ping':          f"ping -c 4 -W 2 {target}",
+        'trace':         f"traceroute -m 15 {target}",
+        'nslookup':      f"nslookup {target}",
+        'whois':         f"whois {target}",
+        'dig':           f"dig {target} {record}",
+        'dig_short':     f"dig +short {target}",
+        'dig_trace':     f"dig +trace {target}",
+        'dnssec':        f"dig +dnssec {target}",
+        'reverse':       f"dig -x {target}",
+        'check_control': "unbound-control status",
+        'check_conf':    "unbound-checkconf",
+        'stats':         "unbound-control stats_noreset",
+        'local_zones':   "unbound-control list_local_zones",
+        'local_data':    "unbound-control list_local_data",
+        'dump_cache':    "unbound-control dump_cache",
+        'lookup':        f"unbound-control lookup {target}",
     }
 
     if tool == 'custom':
-        # Whitelist allowed unbound-control subcommands for custom input
-        allowed_prefix = ('stats','status','lookup','list_','dump_','flush_zone','flush ','verbosity','reload')
-        args = target  # target field reused for custom args
+        allowed_prefix = ('stats', 'status', 'lookup', 'list_', 'dump_',
+                          'flush_zone', 'flush ', 'verbosity', 'reload')
+        args = target   # reuse target field for custom args
         if not any(args.startswith(p) for p in allowed_prefix):
-            return jsonify({'success': False, 'error': 'Command not allowed', 'output': f'Blocked: unbound-control {args}\nOnly stats/status/lookup/list_*/dump_*/flush_* allowed.'})
-        cmd_run  = f"unbound-control {args}"
-        cmd_show = cmd_run
+            return jsonify({
+                'success': False,
+                'output':  f'Blocked: unbound-control {args}\n'
+                           f'Only stats/status/lookup/list_*/dump_*/flush_* are allowed.',
+                'rc': 1
+            })
+        cmd = f"unbound-control {args}"
     elif tool in cmd_map:
-        cmd_run, cmd_show = cmd_map[tool]
+        cmd = cmd_map[tool]
     else:
-        return jsonify({'success': False, 'error': 'Unknown tool', 'output': 'Unknown tool: ' + tool})
+        return jsonify({'success': False, 'output': f'Unknown tool: {tool}', 'rc': 1})
 
-    out, err, rc = run_cmd(cmd_run)
-    output = out if out else err
-    return jsonify({'success': rc == 0, 'output': output or '(no output)', 'rc': rc, 'cmd': cmd_show})
+    out, err, rc = run_cmd(cmd)
+    return jsonify({
+        'success': rc == 0,
+        'output':  out if out else err or '(no output)',
+        'rc':      rc,
+        'cmd':     cmd,
+    })
 
 
-    
+# ─────────────────────────────────────────────
+#  BACKUP ROUTES
+# ─────────────────────────────────────────────
+
+import shutil as _shutil
+import glob as _glob
+
+BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+
+@app.route('/api/backup/create', methods=['POST'])
+@login_required
+def api_backup_create():
+    data  = request.get_json() or {}
+    label = re.sub(r'[^a-zA-Z0-9_-]', '_', data.get('label', '').strip()) or 'manual'
+    ts    = datetime.now().strftime('%Y%m%d_%H%M%S')
+    src   = get_config_file()
+    dest  = os.path.join(BACKUP_DIR, f'unbound_{label}_{ts}.conf')
+    try:
+        _shutil.copy2(src, dest)
+        return jsonify({'success': True, 'filename': os.path.basename(dest)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/backup/list')
+@login_required
+def api_backup_list():
+    files = sorted(
+        _glob.glob(os.path.join(BACKUP_DIR, '*.conf')),
+        key=os.path.getmtime,
+        reverse=True
+    )
+    result = []
+    for f in files:
+        stat = os.stat(f)
+        result.append({
+            'filename': os.path.basename(f),
+            'size':     stat.st_size,
+            'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+        })
+    return jsonify({'success': True, 'backups': result})
+
+
+@app.route('/api/backup/restore', methods=['POST'])
+@login_required
+def api_backup_restore():
+    data     = request.get_json() or {}
+    filename = os.path.basename(data.get('filename', ''))
+    src      = os.path.join(BACKUP_DIR, filename)
+    dest     = get_config_file()
+    if not filename or not os.path.exists(src):
+        return jsonify({'success': False, 'error': 'Backup file not found'})
+    try:
+        # Save current config as an emergency pre-restore backup first
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        _shutil.copy2(dest, os.path.join(BACKUP_DIR, f'pre_restore_{ts}.conf'))
+        _shutil.copy2(src, dest)
+        run_cmd('systemctl reload-or-restart unbound')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/backup/delete', methods=['POST'])
+@login_required
+def api_backup_delete():
+    data     = request.get_json() or {}
+    filename = os.path.basename(data.get('filename', ''))
+    path     = os.path.join(BACKUP_DIR, filename)
+    if not filename or not os.path.exists(path):
+        return jsonify({'success': False, 'error': 'File not found'})
+    try:
+        os.remove(path)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/backup/download/<filename>')
+@login_required
+def api_backup_download(filename):
+    from flask import send_from_directory
+    safe = os.path.basename(filename)
+    return send_from_directory(BACKUP_DIR, safe, as_attachment=True)
+
+
+def run_http_redirect(http_port: int, https_port: int):
+    """
+    Runs a tiny HTTP server on http_port whose sole job is to
+    301-redirect every request to the HTTPS equivalent.
+    Runs in a daemon thread — dies automatically when the main process exits.
+    """
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class RedirectHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            host = self.headers.get('Host', '').split(':')[0] or 'localhost'
+            target = f'https://{host}:{https_port}{self.path}'
+            self.send_response(301)
+            self.send_header('Location', target)
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+
+        # Accept all methods and redirect them too
+        do_POST = do_PUT = do_DELETE = do_PATCH = do_HEAD = do_OPTIONS = do_GET
+
+        def log_message(self, fmt, *args):
+            pass  # silence access log — redirects are noise
+
+    def _serve():
+        try:
+            server = HTTPServer(('0.0.0.0', http_port), RedirectHandler)
+            server.serve_forever()
+        except Exception as e:
+            print(f'[http-redirect] Could not bind port {http_port}: {e}')
+
+    t = threading.Thread(target=_serve, daemon=True)
+    t.start()
+    print(f'[http-redirect] Listening on http://0.0.0.0:{http_port}  →  https://...:{https_port}')
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    import ssl as _ssl
+
+    HTTP_PORT  = 8080   # plain HTTP — only redirects to HTTPS
+    HTTPS_PORT = 8443   # all real traffic served here
+
+    # ── Generate / load TLS certificate ──────────────────────────────────────
+    try:
+        from ssl_utils import ensure_ssl_cert
+        cert_file, key_file = ensure_ssl_cert()
+
+        ssl_ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_SERVER)
+        ssl_ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
+        ssl_ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
+
+        # Cookie must be Secure when served over HTTPS
+        app.config['SESSION_COOKIE_SECURE'] = True
+
+        # Start the HTTP→HTTPS redirect listener in a background thread
+        run_http_redirect(HTTP_PORT, HTTPS_PORT)
+
+        print(f'[app] HTTPS listening on  https://0.0.0.0:{HTTPS_PORT}')
+        print(f'[app] HTTP  redirect on   http://0.0.0.0:{HTTP_PORT}  -> HTTPS')
+        print(f'[app] Note: browsers will warn about the self-signed cert.')
+        print(f'[app] To silence the warning, import ssl_cert.pem into your')
+        print(f'[app] browser/OS trust store once.')
+
+        app.run(host='0.0.0.0', port=HTTPS_PORT, debug=False, ssl_context=ssl_ctx)
+
+    except RuntimeError as e:
+        # cryptography not installed — fall back to plain HTTP with a clear message
+        app.config['SESSION_COOKIE_SECURE'] = False
+        print(f'\n[ssl] WARNING: {e}')
+        print('[ssl] Falling back to plain HTTP on port 8080.\n')
+        app.run(host='0.0.0.0', port=HTTP_PORT, debug=False)

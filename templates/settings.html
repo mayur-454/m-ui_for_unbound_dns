@@ -119,9 +119,6 @@
     </div>
 
 
-
-
-    <!-- backup section  -->
     <!-- BACKUPS -->
     <div class="card">
       <div class="card-header">
@@ -133,18 +130,87 @@
         <h3>Backups</h3>
       </div>
       <div class="card-body">
+
         <div class="form-section-title">Create Backup</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <input class="form-control" id="bk-label" placeholder="Label (optional, e.g. before-change)" style="flex:1;">
-          <button class="btn btn-primary btn-sm" onclick="createBackup()">Backup Now</button>
+        <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center;">
+          <input class="form-control" id="bk-label" placeholder="Label e.g. before-change (optional)" style="flex:1;"
+            onkeydown="if(event.key==='Enter') createBackup()">
+          <button class="btn btn-primary btn-sm" onclick="createBackup()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Backup Now
+          </button>
         </div>
 
-        <div class="form-section-title">Saved Backups</div>
-        <button class="btn btn-ghost btn-sm" style="margin-bottom:8px;" onclick="loadBackups()">↻ Refresh List</button>
-        <div id="bk-list"><span class="text-muted text-xs">Click refresh to load backups.</span></div>
+        <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Saved Backups</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadBackups()" id="bk-refresh-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+            </svg>
+            Refresh List
+          </button>
+        </div>
+        <div id="bk-list" style="margin-top:8px;">
+          <span class="text-muted" style="font-size:12px;">Click Refresh List to load backups.</span>
+        </div>
+
       </div>
     </div>
 
+
+    <!-- ABOUT -->
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <h3>About</h3>
+      </div>
+      <div class="card-body">
+        <table class="info-table">
+          <tr>
+            <td>Application</td>
+            <td>Unbound DNS Web GUI</td>
+          </tr>
+          <tr>
+            <td>Description</td>
+            <td>pfSense/OpenWrt-style management interface for Unbound DNS on Debian</td>
+          </tr>
+          <tr>
+            <td>Config Dir</td>
+            <td class="text-accent">/etc/unbound/unbound.conf.d/</td>
+          </tr>
+          <tr>
+            <td>Default Config</td>
+            <td class="text-accent">/etc/unbound/unbound.conf</td>
+          </tr>
+          <tr>
+            <td>Service</td>
+            <td class="text-accent">unbound (systemd)</td>
+          </tr>
+          <tr>
+            <td>GUI Port</td>
+            <td class="text-orange">8080</td>
+          </tr>
+        </table>
+        <div class="alert alert-info mt-1" style="margin-top:12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          Requires <code>sudo</code> privileges (NOPASSWD) for <code>tee</code>, <code>systemctl</code>, and
+          <code>rm</code> to function. See README.
+        </div>
+      </div>
+    </div>
 
   </div><!-- /left -->
 
@@ -200,11 +266,9 @@
         </div>
 
         <div class="form-section-title">Service Status</div>
-
         <button class="btn btn-ghost btn-sm" id="svc-status-btn" onclick="toggleServiceStatus()">Show Full
           Status</button>
         <div class="log-viewer mt-1" id="svc-status-output" style="min-height:40px;display:none;"></div>
-
       </div>
     </div>
 
@@ -314,55 +378,6 @@
       </div>
     </div>
 
-    <!-- ABOUT -->
-    <div class="card">
-      <div class="card-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        <h3>About</h3>
-      </div>
-      <div class="card-body">
-        <table class="info-table">
-          <tr>
-            <td>Application</td>
-            <td>Unbound DNS Web GUI</td>
-          </tr>
-          <tr>
-            <td>Description</td>
-            <td>pfSense/OpenWrt-style management interface for Unbound DNS on Debian</td>
-          </tr>
-          <tr>
-            <td>Config Dir</td>
-            <td class="text-accent">/etc/unbound/unbound.conf.d/</td>
-          </tr>
-          <tr>
-            <td>Default Config</td>
-            <td class="text-accent">/etc/unbound/unbound.conf</td>
-          </tr>
-          <tr>
-            <td>Service</td>
-            <td class="text-accent">unbound (systemd)</td>
-          </tr>
-          <tr>
-            <td>GUI Port</td>
-            <td class="text-orange">8080</td>
-          </tr>
-        </table>
-        <div class="alert alert-info mt-1" style="margin-top:12px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          Requires <code>sudo</code> privileges (NOPASSWD) for <code>tee</code>, <code>systemctl</code>, and
-          <code>rm</code> to function. See README.
-        </div>
-      </div>
-    </div>
-
   </div><!-- /right -->
 </div>
 
@@ -438,44 +453,6 @@
     else toast('Validation failed', 'error', 6000);
   }
 
-
-  // Backup
-  async function createBackup() {
-    const label = document.getElementById('bk-label').value;
-    toast('Creating backup…', 'info');
-    const d = await apiPost('/api/backup/create', { label });
-    toast(d.success ? `Backup saved: ${d.filename}` : `Failed: ${d.error}`, d.success ? 'success' : 'error');
-    if (d.success) loadBackups();
-  }
-
-  async function loadBackups() {
-    const el = document.getElementById('bk-list');
-    el.innerHTML = '<span class="text-muted text-xs">Loading…</span>';
-    const d = await fetch('/api/backup/list').then(r => r.json());
-    if (!d.backups.length) { el.innerHTML = '<span class="text-muted text-xs">No backups found.</span>'; return; }
-    el.innerHTML = d.backups.map(f => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
-      <span style="flex:1;font-size:12px;font-family:monospace;">${f}</span>
-      <a href="/api/backup/download/${f}" class="btn btn-ghost btn-sm">⬇ Download</a>
-      <button class="btn btn-primary btn-sm" onclick="restoreBackup('${f}')">Restore</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteBackup('${f}')">Delete</button>
-    </div>`).join('');
-  }
-
-  async function restoreBackup(filename) {
-    if (!confirm(`Restore from "${filename}"? Current config will be backed up first.`)) return;
-    toast('Restoring backup…', 'info');
-    const d = await apiPost('/api/backup/restore', { filename });
-    toast(d.success ? 'Restored and Unbound reloaded!' : `Failed: ${d.error}`, d.success ? 'success' : 'error');
-  }
-
-  async function deleteBackup(filename) {
-    if (!confirm(`Delete backup "${filename}"?`)) return;
-    const d = await apiPost('/api/backup/delete', { filename });
-    toast(d.success ? 'Deleted' : `Failed: ${d.error}`, d.success ? 'success' : 'error');
-    if (d.success) loadBackups();
-  }
-
   // Service status
   async function toggleServiceStatus() {
     const el = document.getElementById('svc-status-output');
@@ -491,7 +468,6 @@
     const d = await fetch('/api/service/status').then(r => r.json());
     el.textContent = d.output || '(no output)';
   }
-
   // Cache actions
   async function cacheAction(action, msgStart, msgEnd) {
     toast(msgStart, 'info');
@@ -552,6 +528,103 @@
   }
 
   refreshLogs();
-  loadBackups(); // loading backup config list
+  loadBackups(); // loading the buckup list
+
+  // ── BACKUP FUNCTIONS ──────────────────────────────────────────────────────────
+
+  async function createBackup() {
+    const label = (document.getElementById('bk-label').value || '').trim();
+    const btn = document.querySelector('#bk-list').previousElementSibling.querySelector('button');
+    toast('Creating backup…', 'info');
+    try {
+      const d = await apiPost('/api/backup/create', { label });
+      if (d.success) {
+        toast('Backup saved: ' + d.filename, 'success');
+        document.getElementById('bk-label').value = '';
+        loadBackups();
+      } else {
+        toast('Failed: ' + (d.error || 'unknown error'), 'error');
+      }
+    } catch (e) {
+      toast('Request failed: ' + e, 'error');
+    }
+  }
+
+  async function loadBackups() {
+    const el = document.getElementById('bk-list');
+    const btn = document.getElementById('bk-refresh-btn');
+    el.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">Loading…</span>';
+    if (btn) btn.disabled = true;
+    try {
+      const d = await fetch('/api/backup/list').then(r => r.json());
+      if (btn) btn.disabled = false;
+      if (!d.success) {
+        el.innerHTML = '<span style="font-size:12px;color:var(--red);">Error: ' + (d.error || 'unknown') + '</span>';
+        return;
+      }
+      if (!d.backups || d.backups.length === 0) {
+        el.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No backups found. Create one above.</span>';
+        return;
+      }
+      el.innerHTML = d.backups.map(b => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-family:monospace;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.filename}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${b.modified} &mdash; ${formatBytes(b.size)}</div>
+        </div>
+        <a href="/api/backup/download/${encodeURIComponent(b.filename)}" class="btn btn-ghost btn-sm" title="Download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </a>
+        <button class="btn btn-primary btn-sm" onclick="restoreBackup('${escHtml(b.filename)}')" title="Restore this backup">Restore</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBackup('${escHtml(b.filename)}')" title="Delete this backup">Delete</button>
+      </div>`).join('');
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      el.innerHTML = '<span style="font-size:12px;color:var(--red);">Request failed: ' + e + '</span>';
+    }
+  }
+
+  async function restoreBackup(filename) {
+    if (!confirm('Restore from "' + filename + '"?\n\nYour current config will be saved as a pre-restore backup first, then Unbound will be reloaded.')) return;
+    toast('Restoring backup…', 'info');
+    try {
+      const d = await apiPost('/api/backup/restore', { filename });
+      if (d.success) {
+        toast('Restored successfully — Unbound reloaded!', 'success');
+        loadBackups();
+      } else {
+        toast('Restore failed: ' + (d.error || 'unknown error'), 'error');
+      }
+    } catch (e) {
+      toast('Request failed: ' + e, 'error');
+    }
+  }
+
+  async function deleteBackup(filename) {
+    if (!confirm('Delete backup "' + filename + '"?\nThis cannot be undone.')) return;
+    toast('Deleting…', 'info');
+    try {
+      const d = await apiPost('/api/backup/delete', { filename });
+      if (d.success) {
+        toast('Backup deleted', 'success');
+        loadBackups();
+      } else {
+        toast('Delete failed: ' + (d.error || 'unknown error'), 'error');
+      }
+    } catch (e) {
+      toast('Request failed: ' + e, 'error');
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function escHtml(str) {
+    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
 </script>
 {% endblock %}

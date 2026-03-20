@@ -41,7 +41,7 @@
             <option value="ANY">ANY</option>
           </select>
         </div>
-        <div class="btn-group" style="flex-wrap:wrap;gap:6px; margin-top: 8px;">
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;margin-top:6px;">
           <button class="btn btn-primary btn-sm" onclick="runDig()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
               <circle cx="11" cy="11" r="8" />
@@ -72,7 +72,7 @@
           <input class="form-control" id="dbg-target2" placeholder="e.g. 1.1.1.1 or google.com"
             onkeydown="if(event.key==='Enter') runTool2('ping')">
         </div>
-        <div class="btn-group" style="flex-wrap:wrap;gap:6px;margin-top: 8px;">
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;margin-top:6px;">
           <button class="btn btn-primary btn-sm" onclick="runTool2('ping')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -94,7 +94,7 @@
         <h3>Unbound Diagnostics</h3>
       </div>
       <div class="card-body">
-        <div class="btn-group" style="flex-wrap:wrap;gap:6px;">
+        <div class="btn-group" style="flex-wrap:wrap;gap:6px;margin-top:6px;">
           <button class="btn btn-ghost btn-sm" onclick="runBuiltin('check_control')">control status</button>
           <button class="btn btn-ghost btn-sm" onclick="runBuiltin('check_conf')">checkconf</button>
           <button class="btn btn-ghost btn-sm" onclick="runBuiltin('stats')">stats</button>
@@ -124,7 +124,7 @@
           <input class="form-control" id="dbg-custom" placeholder="e.g.  flush_zone example.com"
             onkeydown="if(event.key==='Enter') runCustom()">
         </div>
-        <div class="alert alert-warning" style="margin:12px 0px 12px 0px;">
+        <div class="alert alert-warning" style="margin:6px 0 12px 0;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />

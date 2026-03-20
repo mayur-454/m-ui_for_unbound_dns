@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login - M-UI for Unbound DNS</title>
+  <title>Login - Unbound DNS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Exo+2:wght@300;400;500;600&family=Share+Tech+Mono&display=swap"
@@ -12,14 +12,13 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login-page.css') }}">
-
-  <link rel="icon" href="{{ url_for('static', filename='unbound.svg')}}" type="image/svg+xml">   
+  <link rel="icon" href="{{ url_for('static', filename='unbound.svg')}}" type="image/svg+xml">
 </head>
 
 <body>
 
   <div class="login-logo">
-    <img src="https://www.privacidade.digital/assets/img/svg/3rd-party/unbound.svg" alt="Unbound DNS Resolver Logo">
+    <img src="{{ url_for('static', filename='unbound.svg')}}" alt="unbound dns logo">
     <span>UNBOUND <b>DNS</b></span>
   </div>
 
@@ -44,7 +43,8 @@
       </div>
       {% endif %}
 
-      <form method="POST" action="/login{% if next %}?next={{ next }}{% endif %}">
+      <form method="POST" action="/login">
+        <input type="hidden" name="next" value="{{ next or '/' }}">
         <div class="form-group">
           <label class="form-label" for="username">Username</label>
           <input class="form-control" type="text" id="username" name="username" autocomplete="username" autofocus
@@ -54,19 +54,19 @@
           <label class="form-label" for="password">Password</label>
           <input class="form-control" type="password" id="password" name="password" autocomplete="current-password">
         </div>
-        <button type="submit" class="btn2 btn-primary2 btn-full" style="margin-top:8px;">
+        <button type="submit" class="btn2 btn-primary2 btn-full2" style="margin-top:8px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
             <polyline points="10 17 15 12 10 7" />
             <line x1="15" y1="12" x2="3" y2="12" />
           </svg>
-          Sign In
+          Log In
         </button>
       </form>
     </div>
   </div>
 
-  <div class="login-footer">M-UI for Unbound DNS &mdash; Secured Access</div>
+  <div class="login-footer">M-UI for <a target="_blank" href="https://nlnetlabs.nl/projects/unbound/about/">Unbound DNS</a></div>
 
 </body>
 

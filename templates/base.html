@@ -20,9 +20,9 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <a href="/" class="topbar-logo">
-      <img src="https://www.privacidade.digital/assets/img/svg/3rd-party/unbound.svg" alt="Unbound DNS Resolver Logo">
-      <span class="topbar-title">UNBOUND</span>
+      <img src="{{ url_for('static', filename='unbound.svg')}}" alt="unbound dns logo">
     </a>
+    <span class="topbar-title">UNBOUND <span>DNS</span></span>
     <div class="topbar-sep"></div>
     <span class="topbar-hostname">HOST: <b id="tb-hostname">loading…</b></span>
     <div class="topbar-right">
@@ -55,16 +55,15 @@
         </svg>
         Config
       </a>
+
       <a href="/debug" class="sidebar-item {% if active_tab=='debug' %}active{% endif %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+          <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
         Debug
       </a>
-
-
       <a href="/settings" class="sidebar-item {% if active_tab=='settings' %}active{% endif %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3" />
@@ -85,9 +84,14 @@
         <div id="sb-cfgfile" class="text-xs text-mono text-dim" style="word-break:break-all;">—</div>
       </div>
 
-      <!-- logout button  -->
       <div class="sidebar-divider"></div>
-      <a href="/logout" class="sidebar-item">
+      <div style="padding: 6px 20px 4px;">
+        <div class="text-xs text-muted" style="margin-bottom:2px;">SIGNED IN AS</div>
+        <div class="text-xs" style="color:var(--accent);font-family:monospace;">{{ session.get('username','—') }}</div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+      <a href="/logout" class="sidebar-item" style="color:var(--text-muted);margin-top:2px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
           <polyline points="16 17 21 12 16 7" />
@@ -95,6 +99,8 @@
         </svg>
         Logout
       </a>
+
+      <div class="sidebar-divider"></div>
     </nav>
 
     <!-- MAIN -->
@@ -120,7 +126,6 @@
       t.addEventListener('mouseleave', () => { paused = false; setTimeout(() => { if (!paused) dismiss(); }, 800); });
       t.timer = setTimeout(() => { if (!paused) dismiss(); }, duration);
     }
-
     async function apiPost(url, data) {
       const r = await fetch(url, {
         method: 'POST',

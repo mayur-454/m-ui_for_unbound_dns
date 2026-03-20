@@ -1,4 +1,9 @@
 venv/
-backups/
 .stfolder/
+.secret_key
+users.json
+ssl_cert.pem
+ssl_key.pem
+backups/
+*.bak.*
 __pycache__/
