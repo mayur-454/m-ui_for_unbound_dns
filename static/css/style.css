@@ -24,7 +24,6 @@
     --text-dim: #b0b0b0;
     --text-muted: #666666;
 
-
     --mono: 'Share Tech Mono', 'Courier New', monospace;
     --sans: 'Exo 2', 'Rajdhani', sans-serif;
     --heading: 'Rajdhani', 'Exo 2', sans-serif;
@@ -40,7 +39,7 @@ body {
     background: var(--bg-dark);
     color: var(--text);
     font-family: var(--sans);
-    font-size: 14px;
+
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -119,7 +118,7 @@ body {
     padding: 4px 12px;
     border-radius: 20px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -214,7 +213,7 @@ body {
     text-decoration: none;
     font-family: var(--heading);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
     letter-spacing: 0.5px;
     /* transition: all 0.1s; */
     border-left: 3px solid transparent;
@@ -315,7 +314,7 @@ body {
 
 .card-header h3 {
     font-family: var(--heading);
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--accent);
@@ -389,7 +388,7 @@ body {
 }
 
 .stat-label {
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--mono);
     color: var(--text-muted);
     letter-spacing: 1px;
@@ -423,7 +422,7 @@ body {
 }
 
 .stat-sub {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-muted);
     font-family: var(--mono);
 }
@@ -486,7 +485,7 @@ body {
 .info-table td:last-child {
     color: var(--text);
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 /* ── FORMS ── */
@@ -496,7 +495,7 @@ body {
 
 .form-section-title {
     font-family: var(--heading);
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--orange);
     letter-spacing: 1.5px;
@@ -533,12 +532,14 @@ body {
     color: var(--accent);
     display: block;
     margin-bottom: 2px;
+    text-transform: capitalize;
 }
 
 .form-label .desc {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.4;
+    text-transform: full-width;
 }
 
 .form-control {
@@ -548,7 +549,7 @@ body {
     border-radius: 4px;
     padding: 6px 10px;
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 14px;
     width: 100%;
     transition: border-color 0.15s;
 }
@@ -642,7 +643,7 @@ select.form-control option {
     border: 1px solid;
     cursor: pointer;
     font-family: var(--heading);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     text-decoration: none;
@@ -779,12 +780,12 @@ select.form-control option {
 
 /* ── LOG VIEWER ── */
 .log-viewer {
-    background: #050d18;
+    background: var(--bg-dark);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 10px;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 12px;
     color: #6a9fb5;
     max-height: 340px;
     overflow-y: auto;
@@ -805,12 +806,13 @@ select.form-control option {
     border-radius: 3px;
 }
 
+
 /* ── BADGES ── */
 .badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 12px;
     font-family: var(--mono);
     font-weight: 600;
     text-transform: uppercase;
@@ -853,7 +855,7 @@ select.form-control option {
     border-radius: 4px;
     border-left: 3px solid;
     margin-bottom: 14px;
-    font-size: 13px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -901,7 +903,7 @@ select.form-control option {
     color: var(--text-muted);
     cursor: pointer;
     font-family: var(--heading);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     border-radius: 4px 4px 0 0;
@@ -1011,7 +1013,7 @@ select.form-control option {
     padding: 12px 16px;
     min-width: 280px;
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 14px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     animation: slideIn 0.2s ease;
     display: flex;
@@ -1085,7 +1087,7 @@ select.form-control option {
 }
 
 .text-xs {
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .mt-1 {
