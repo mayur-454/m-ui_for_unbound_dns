@@ -3,7 +3,6 @@
 >[!WARNING]
 >AI Disclosure: This project was developed entirely using AI. The creator is not a Python or Java programmer. Use at your own risk. The creator is not responsible for data loss or system instability.
 
-https://camo.githubusercontent.com/2e445a865a4b6368b5fe5fdd90deb88311469c644320af29c1499ab42b506884/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f706c6174666f726d2d4c696e75782d4643433632343f6c6f676f3d6c696e7578266c6f676f436f6c6f723d626c61636b
 
 <details open>
   <summary><b>Click to collapse Screenshots</b></summary>
