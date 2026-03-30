@@ -83,6 +83,7 @@ python app.py
 Once the application is running:   
 - **With TLS/HTTPS:** Access the interface at `https://<your-ip>:8443`.   
 - **Without TLS/HTTP:** Access the interface at `http://<your-ip>:8080`.   
+
+the default login credentials is `admin/admin`
    
 > Note: If you are using a self-signed certificate, your browser will display a "Potential Security Risk" warning. This is expected behavior; you can safely click "Advanced" and "Proceed" to access your local interface.   
-
